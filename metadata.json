@@ -1,0 +1,7 @@
+{
+  "name": "TeleprompterIA",
+  "description": "Teleprompter inteligente com Smart Scroll guiado por voz e assistência de IA.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
