@@ -27,3 +27,5 @@ patch*.py
 migrated_prompt_history/
 .env*
 !.env.example
+
+.vercel

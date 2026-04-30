@@ -114,6 +114,8 @@ O crIAprompter é uma solução profissional de teleprompter baseada na web. Dif
 - **T:** Abrir Configurações de Tema.
 - **P:** Abrir Configurações de Projeção.
 - **I:** Abrir esta tela de Informações.
+- **B:** Ocultar/Exibir Barras de Ferramentas (essencial para pareamento de telas).
+- **/ (barra):** Exibir/Ocultar Guia de Atalhos flutuante (arraste para mover, scroll para redimensionar).
 - **? / H:** Iniciar Tour Guiado.
 
 ### Velocidade (Modo Manual)
@@ -163,7 +165,7 @@ Entre em contato: escrevaprofernando@gmail.com`
 
 // --- Tour Configuration ---
 const TOUR_STEPS = [
-  { target: null, title: "Bem-vindo ao crIAprompter!", content: "Vamos fazer um tour rápido pelas funcionalidades desta ferramenta profissional. Suas barras de ferramentas agora são laterais e retráteis para maximizar o espaço de leitura." },
+  { target: null, title: "Bem-vindo ao crIAprompter!", content: "Vamos fazer um tour rápido pelas funcionalidades desta ferramenta profissional. Suas barras de ferramentas agora são laterais e retráteis para maximizar o espaço de leitura. Use o atalho 'B' para recolher ambas simultaneamente." },
   { target: "btn-editor", title: "Editor de Texto (Atalho: E)", content: "Edite seu roteiro rapidamente. O texto é salvo automaticamente no seu navegador. O tamanho do texto e as margens da tela de leitura podem ser configurados na barra da direita." },
   { target: "btn-ai", title: "Assistente IA (Atalho: A)", content: "Crie ou melhore seus textos com o assistente inteligente integrado. Traduza, resuma ou ajuste o tom da sua mensagem em segundos." },
   { target: "btn-chat", title: "Mentor de Palco", content: "Nosso especialista. Converse com ele sobre técnicas de apresentação, dicas de luz, câmera e performance." },
@@ -1072,7 +1074,7 @@ const TourOverlay = ({ active, stepIndex, onClose, onNext, onPrev, theme, setLef
       <div className="p-6 rounded-xl w-[350px] shadow-2xl absolute transition-all duration-300 border border-white/10" style={{ ...style, backgroundColor: theme.surfaceColor, color: theme.textColor }}>
         <button onClick={onClose} className="absolute top-3 right-3 opacity-50 hover:opacity-100 transition"><X size={20}/></button>
         <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryColor }}>
-          {stepIndex === 0 ? `Bem-vindo ao ${theme.logoName || 'crIAprompter'}!` : step.title}
+          {stepIndex === 0 ? `Bem-vindo ao ${theme.appName || 'crIAprompter'}!` : step.title}
         </h3>
         <p className="mb-6 font-medium leading-relaxed opacity-80">
           {stepIndex === 0 
@@ -1263,15 +1265,17 @@ const DocsModal = ({ isOpen, onClose, theme }: { isOpen: boolean, onClose: () =>
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-3xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl flex flex-col max-h-[80vh] text-slate-100">
-        <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-            <h2 className="text-xl font-bold flex items-center gap-2"><Info className="text-blue-400" /> Documentação</h2>
-            <button onClick={onClose}><X size={24} className="text-slate-400 hover:text-white" /></button>
+      <div className="w-full max-w-3xl border rounded-xl shadow-2xl flex flex-col max-h-[80vh]" style={{ backgroundColor: theme.backgroundColor, borderColor: `${theme.textColor}33`, color: theme.textColor }}>
+        <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: `${theme.textColor}33`, backgroundColor: theme.surfaceColor }}>
+            <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.primaryColor }}><Info /> Documentação & Roadmap</h2>
+            <button onClick={onClose} className="opacity-50 hover:opacity-100 transition"><X size={24} /></button>
         </div>
-        <div className="p-6 overflow-y-auto whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-300">
-            {DOCS_CONTENT.readme}
-            <div className="my-8 border-t border-slate-700" />
-            {DOCS_CONTENT.roadmap}
+        <div className="p-6 overflow-y-auto whitespace-pre-wrap font-mono text-sm leading-relaxed">
+            <div className="prose prose-invert max-w-none">
+                {DOCS_CONTENT.readme}
+                <div className="my-8 border-t" style={{ borderColor: `${theme.textColor}22` }} />
+                {DOCS_CONTENT.roadmap}
+            </div>
         </div>
       </div>
     </div>
@@ -1369,6 +1373,22 @@ const App = () => {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
+  // Shortcut Overlay
+  const [showShortcutOverlay, setShowShortcutOverlay] = useState(false);
+  const [shortcutPos, setShortcutPos] = useState<{x: number, y: number} | null>(null);
+  const [shortcutSize, setShortcutSize] = useState(11);
+  const handleShortcutDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const offX = e.clientX - rect.left;
+    const offY = e.clientY - rect.top;
+    const onMove = (ev: MouseEvent) => setShortcutPos({ x: ev.clientX - offX, y: ev.clientY - offY });
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, []);
+
   // Interaction State for Sovereignty
   const lastManualInteractionRef = useRef<number>(0);
 
@@ -1426,15 +1446,15 @@ const App = () => {
 
   const getHtmlForPopup = useCallback(() => {
      const styles = `
-       body { background-color: ${state.theme.backgroundColor}; color: ${state.theme.textColor}; }
-       .word-span.active { color: ${state.theme.activeWordColor}; text-shadow: 0 0 20px ${state.theme.primaryColor}CC; }
-       #guide-line { border-top-color: ${state.theme.guideLineColor}; color: ${state.theme.guideLineColor}; }
+       body { background: radial-gradient(circle at top, ${state.theme.surfaceColor} 0%, ${state.theme.backgroundColor} 100%); color: ${state.theme.textColor}; }
+       .word-span.active { color: ${state.theme.activeWordColor}; text-shadow: 0 0 15px ${state.theme.primaryColor}CC; }
+       #guide-line { background-color: ${state.theme.guideLineColor}; color: ${state.theme.guideLineColor}; box-shadow: 0 0 10px ${state.theme.guideLineColor}; }
      `;
      const contentHtml = parsedText.map(p => {
         const content = p.words.map(w => 
-          `<span id="${w.id}" class="word-span ${state.activeWordId === w.id ? 'active' : ''}">${w.text}</span>`
-        ).join(' ');
-        return `<p style="margin-bottom: 1em; line-height: 1.2; ${p.words.length === 1 && p.words[0].text === '' ? 'height: 1em' : ''}">${content}</p>`;
+          `<span id="${w.id}" class="word-span ${state.activeWordId === w.id ? 'active' : ''}">${w.text}</span> `
+        ).join('');
+        return `<p style="margin-bottom: 1em; line-height: 1.25; ${p.words.length === 1 && p.words[0].text === '' ? 'height: 1em' : ''}">${content}</p>`;
      }).join('');
      return { styles, content: contentHtml };
   }, [parsedText, state.activeWordId, state.theme]);
@@ -1481,11 +1501,12 @@ const App = () => {
             <script src="https://cdn.tailwindcss.com"></script>
             <style id="dynamic-styles"></style>
             <style>
-              body { overflow: hidden; margin: 0; font-family: sans-serif; }
+              body { overflow: hidden; margin: 0; font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
               ::-webkit-scrollbar { width: 0px; }
               #prompter-container { height: 100vh; overflow-y: scroll; scroll-behavior: auto; }
               #content-wrapper { width: 100%; max-width: 100%; margin: 0 auto; text-align: left; text-transform: uppercase; }
-              .word-span { transition: color 0.2s, text-shadow 0.2s; }
+              .word-span { transition: color 0.2s, text-shadow 0.2s; cursor: pointer; }
+              .word-span:hover { filter: brightness(1.5); }
             </style>
             <script>
                 // Flag to prevent scroll loops
@@ -1529,10 +1550,14 @@ const App = () => {
             </script>
           </head>
           <body>
-            <div id="guide-line" style="position: fixed; left: 0; right: 0; height: 0; border-top: 4px dashed; opacity: 0.4; z-index: 50; pointer-events: none; width: 100%;">
-                <div style="position: absolute; right: 10px; top: -20px; font-size: 12px; font-weight: bold; opacity: 0.8;">LINHA DE LEITURA</div>
+            <div style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; pointer-events: none; z-index: 20; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0.3; margin-top: 4rem; margin-bottom: 6rem;">
+               <div id="guide-line" style="position: absolute; width: 100%; height: 2px; transition: all 0.3s;"></div>
             </div>
-            <div id="prompter-container"><div id="content-wrapper"></div></div>
+            
+            <div style="position: fixed; top: 0; left: 0; right: 0; height: 8rem; z-index: 10; pointer-events: none; background: linear-gradient(to bottom, ${state.theme.backgroundColor} 0%, transparent 100%);"></div>
+            <div style="position: fixed; bottom: 0; left: 0; right: 0; height: 8rem; z-index: 10; pointer-events: none; background: linear-gradient(to top, ${state.theme.backgroundColor} 0%, transparent 100%);"></div>
+
+            <div id="prompter-container" style="position: relative; z-index: 10;"><div id="content-wrapper"></div></div>
           </body>
         </html>
       `);
@@ -1547,8 +1572,8 @@ const App = () => {
           styleEl.innerHTML = styles;
           wrapper.innerHTML = content; 
           wrapper.style.fontSize = `${state.fontSize}px`;
-          wrapper.style.paddingLeft = `calc(${state.margin}% + 2rem)`;
-          wrapper.style.paddingRight = `calc(${state.margin}% + 2rem)`;
+          wrapper.style.paddingLeft = `calc(${state.margin}% + 1rem)`;
+          wrapper.style.paddingRight = `calc(${state.margin}% + 1rem)`;
           wrapper.style.paddingTop = `50vh`;
           wrapper.style.paddingBottom = `50vh`;
           wrapper.style.transform = `scaleX(${state.mirrorX ? -1 : 1}) scaleY(${state.mirrorY ? -1 : 1})`;
@@ -1570,8 +1595,8 @@ const App = () => {
         styleEl.innerHTML = styles;
         wrapper.innerHTML = content; 
         wrapper.style.fontSize = `${state.fontSize}px`;
-        wrapper.style.paddingLeft = `calc(${state.margin}% + 2rem)`;
-        wrapper.style.paddingRight = `calc(${state.margin}% + 2rem)`;
+        wrapper.style.paddingLeft = `calc(${state.margin}% + 1rem)`;
+        wrapper.style.paddingRight = `calc(${state.margin}% + 1rem)`;
         wrapper.style.paddingTop = `50vh`;
         wrapper.style.paddingBottom = `50vh`;
         wrapper.style.transform = `scaleX(${state.mirrorX ? -1 : 1}) scaleY(${state.mirrorY ? -1 : 1})`;
@@ -1606,7 +1631,7 @@ const App = () => {
           }
       }
       if (e.code === "KeyE") { e.preventDefault(); updateState({ isEditorOpen: !state.isEditorOpen }); }
-      if (e.code === "KeyA") { e.preventDefault(); setShowAI(true); }
+      if (e.code === "KeyA") { e.preventDefault(); setIsAIPanelOpen(p => !p); }
       if (e.code === "KeyT") { e.preventDefault(); setShowSettings(true); }
       if (e.code === "KeyI") { e.preventDefault(); setShowDocs(true); }
       if (e.code === "KeyH" || (e.shiftKey && e.code === "Slash")) { e.preventDefault(); setIsTourActive(true); setTourStep(0); }
@@ -1615,6 +1640,13 @@ const App = () => {
       if (e.code === "KeyX") { e.preventDefault(); updateState({ mirrorX: !state.mirrorX }); }
       if (e.code === "KeyY") { e.preventDefault(); updateState({ mirrorY: !state.mirrorY }); }
       if (e.code === "KeyV") { e.preventDefault(); toggleVoice(); }
+      if (e.code === "KeyB") { 
+          e.preventDefault(); 
+          const newState = !(leftSidebarOpen && rightSidebarOpen);
+          setLeftSidebarOpen(newState);
+          setRightSidebarOpen(newState);
+      }
+      if (e.key === "/") { e.preventDefault(); setShowShortcutOverlay(p => !p); }
 
       if (e.code === "KeyM" || e.code === "KeyL" || e.code === "ArrowUp") {
           registerInteraction();
@@ -1639,18 +1671,18 @@ const App = () => {
           e.preventDefault();
           updateState({ fontSize: Math.max(state.fontSize - 4, 16) });
       }
-      if (e.code === "BracketRight") {
+      if (e.key === "]" || e.code === "BracketRight") {
           e.preventDefault();
           updateState({ margin: Math.min(state.margin + 2, 40) });
       }
-      if (e.code === "BracketLeft") {
+      if (e.key === "[" || e.code === "BracketLeft") {
           e.preventDefault();
           updateState({ margin: Math.max(state.margin - 2, 0) });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [state, showSettings, isAIPanelOpen, toggleVoice, updateState, togglePopup, handleRestart, registerInteraction, setPlaying]);
+  }, [state, showSettings, isAIPanelOpen, toggleVoice, updateState, togglePopup, handleRestart, registerInteraction, setPlaying, leftSidebarOpen, rightSidebarOpen, showShortcutOverlay]);
 
   const jumpToParagraph = (idx: number) => {
      const firstWordId = parsedText.find(p => p.originalIndex === idx)?.words[0]?.id;
@@ -1770,6 +1802,16 @@ const App = () => {
                    <span className="ml-auto text-xs opacity-50 font-mono">(I)</span>
                </button>
              </Tooltip>
+           </div>
+
+           <div className="flex flex-col w-full">
+              <Tooltip label="Exibe um guia flutuante de atalhos. Arraste para mover, scroll para redimensionar. (Atalho: /)" side="right" className="w-full">
+                <button id="btn-shortcuts" onClick={() => setShowShortcutOverlay(p => !p)} className={`w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10`} style={{ color: showShortcutOverlay ? state.theme.primaryColor : state.theme.textColor }}>
+                   <span className="text-lg leading-none">⌨</span>
+                   <span className="font-medium text-sm whitespace-nowrap">Guia de Atalhos</span>
+                   <span className="ml-auto text-xs opacity-50 font-mono">(/)</span>
+                </button>
+              </Tooltip>
            </div>
         </aside>
       </div>
@@ -2104,6 +2146,13 @@ const App = () => {
                       <span className="ml-auto text-xs font-mono relative z-10" style={{ color: state.isPlaying ? `${state.theme.backgroundColor}99` : 'rgba(255,255,255,0.6)' }}>(Espaço)</span>
                   </button>
                 </Tooltip>
+              <Tooltip label="Exibe um guia flutuante de atalhos. Arraste para mover, scroll para redimensionar. (Atalho: /)" side="right" className="w-full">
+                <button id="btn-shortcuts" onClick={() => setShowShortcutOverlay(p => !p)} className={`w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10`} style={{ color: showShortcutOverlay ? state.theme.primaryColor : state.theme.textColor }}>
+                   <span className="text-lg leading-none">⌨</span>
+                   <span className="font-medium text-sm whitespace-nowrap">Guia de Atalhos</span>
+                   <span className="ml-auto text-xs opacity-50 font-mono">(/)</span>
+                </button>
+              </Tooltip>
             </div>
 
             <div className="w-full h-px bg-white/10 my-1" />
@@ -2202,6 +2251,45 @@ const App = () => {
       <DonationModal isOpen={showDonation} onClose={() => setShowDonation(false)} theme={state.theme} />
       <DocsModal isOpen={showDocs} onClose={() => setShowDocs(false)} theme={state.theme} />
       <MentorChat isOpen={showChat} onClose={() => setShowChat(false)} currentText={state.text} theme={state.theme} />
+
+      {/* SHORTCUT OVERLAY */}
+      {showShortcutOverlay && (
+        <div
+          className="fixed z-[100] select-none cursor-move font-mono leading-relaxed"
+          style={{
+            top: shortcutPos?.y ?? 20,
+            right: shortcutPos ? undefined : 20,
+            left: shortcutPos?.x,
+            fontSize: `${shortcutSize}px`,
+            color: `${state.theme.textColor}99`,
+          }}
+          onMouseDown={handleShortcutDrag}
+          onWheel={(e) => { e.stopPropagation(); setShortcutSize(s => Math.max(8, Math.min(22, s + (e.deltaY < 0 ? 1 : -1)))); }}
+        >
+          <span style={{color: `${state.theme.primaryColor}AA`, fontWeight: 700}}>⌨ Atalhos</span><br/>
+          Espaço · Play / Pause<br/>
+          V · Modo de Voz<br/>
+          E · Editor de Texto<br/>
+          A · Assistente IA<br/>
+          T · Configurações<br/>
+          I · Info & Roadmap<br/>
+          B · Recolher Barras<br/>
+          W · Janela Externa<br/>
+          X · Espelhar (H)<br/>
+          Y · Espelhar (V)<br/>
+          R · Reiniciar Texto<br/>
+          H · Tour Guiado<br/>
+          <span style={{opacity: 0.5}}>───────────</span><br/>
+          J/↓ · − Velocidade<br/>
+          L/↑ · + Velocidade<br/>
+          +/− · Fonte<br/>
+          [ / ] · Margem<br/>
+          <span style={{opacity: 0.4, fontSize: '0.85em'}}>
+            / · fechar &nbsp;|&nbsp; arrastar · mover<br/>
+            scroll · resize
+          </span>
+        </div>
+      )}
 
       {/* GUIDED TOUR OVERLAY */}
       <TourOverlay 
