@@ -1,4 +1,4 @@
-const CACHE_NAME = 'criaprompter-v1';
+const CACHE_NAME = 'teleprompteria-v1';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -1,7 +1,7 @@
 
 {
-  "name": "crIAprompter",
-  "short_name": "crIAprompter",
+  "name": "teleprompterIA",
+  "short_name": "teleprompterIA",
   "description": "O teleprompter inteligente que acompanha sua voz.",
   "start_url": "/",
   "display": "standalone",
