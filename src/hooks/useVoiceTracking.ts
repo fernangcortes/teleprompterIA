@@ -34,6 +34,12 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
   const allWordsRef = useRef<ParsedWord[]>([]);
   useEffect(() => { allWordsRef.current = allWords; }, [allWords]);
 
+  const activeWordIdRef = useRef(activeWordId);
+  useEffect(() => { activeWordIdRef.current = activeWordId; }, [activeWordId]);
+
+  const voiceToleranceRef = useRef(voiceTolerance);
+  useEffect(() => { voiceToleranceRef.current = voiceTolerance; }, [voiceTolerance]);
+
   const initAudioAnalysis = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -68,24 +74,71 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
     }
   };
 
+  const stopVoiceMode = useCallback(() => {
+    shouldBeOn.current = false;
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.stop();
+      }
+    } catch (e) {}
+    
+    if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (audioContextRef.current) {
+        audioContextRef.current.close();
+    }
+    if (volumeCheckIntervalRef.current) clearInterval(volumeCheckIntervalRef.current);
+
+    setVoiceMode(false);
+    setVoiceStatus('idle');
+    setActiveWordId(null);
+    setPlaying(false);
+    setLiveTranscript("");
+    setCurrentVolume(0);
+  }, [setVoiceMode, setVoiceStatus, setActiveWordId, setPlaying, setLiveTranscript, setCurrentVolume]);
+
   const startRecognition = useCallback(() => {
     try {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) return;
       
+      // Prevent running multiple Web Speech instances
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'pt-BR';
 
+      recognition.onerror = (event: any) => {
+        console.error("Erro no SpeechRecognition:", event.error);
+        if (event.error === 'not-allowed') {
+          shouldBeOn.current = false;
+          stopVoiceMode();
+        }
+      };
+
       recognition.onend = () => {
         if (shouldBeOn.current) {
              console.log("Reiniciando motor de voz...");
-             try {
-               recognition.start(); 
-             } catch (err) {
-               console.error("Erro ao reiniciar SpeechRecognition", err);
-             }
+             setTimeout(() => {
+               if (shouldBeOn.current) {
+                 try {
+                   recognition.start(); 
+                 } catch (err) {
+                   console.error("Erro ao reiniciar SpeechRecognition", err);
+                 }
+               }
+             }, 300);
         }
       };
 
@@ -120,7 +173,7 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
 
          if (spokenSnippet.length < 1) return;
 
-         const currentActiveId = activeWordId;
+         const currentActiveId = activeWordIdRef.current;
          const currentWords = allWordsRef.current;
          const currentIndex = currentActiveId 
             ? currentWords.findIndex(w => w.id === currentActiveId) 
@@ -132,7 +185,7 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
          const strictStart = Math.max(0, currentIndex - SEARCH_BACK);
          const strictEnd = Math.min(currentWords.length, currentIndex + SEARCH_FWD);
          
-         const match = findBestMatch(spokenSnippet, currentWords, strictStart, strictEnd, voiceTolerance);
+         const match = findBestMatch(spokenSnippet, currentWords, strictStart, strictEnd, voiceToleranceRef.current);
 
          if (match.score >= 0.5 && match.index !== -1) {
              const targetWord = currentWords[match.index];
@@ -148,7 +201,7 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
       console.error(e);
       stopVoiceMode();
     }
-  }, [ignoreVoiceUntilRef, activeWordId, voiceTolerance, setActiveWordId, setLiveTranscript, transcriptBufferRef]);
+  }, [ignoreVoiceUntilRef, setActiveWordId, setLiveTranscript, transcriptBufferRef, stopVoiceMode]);
 
   const startCountdown = useCallback(() => {
     setVoiceMode(true);
@@ -173,28 +226,6 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
     }, 1000);
   }, [setVoiceMode, setVoiceStatus, setCountdownValue, setPlaying, startRecognition, transcriptBufferRef]);
 
-  const stopVoiceMode = useCallback(() => {
-    shouldBeOn.current = false;
-    try {
-      recognitionRef.current?.stop();
-    } catch (e) {}
-    
-    if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (audioContextRef.current) {
-        audioContextRef.current.close();
-    }
-    if (volumeCheckIntervalRef.current) clearInterval(volumeCheckIntervalRef.current);
-
-    setVoiceMode(false);
-    setVoiceStatus('idle');
-    setActiveWordId(null);
-    setPlaying(false);
-    setLiveTranscript("");
-    setCurrentVolume(0);
-  }, [setVoiceMode, setVoiceStatus, setActiveWordId, setPlaying, setLiveTranscript, setCurrentVolume]);
-
   const toggleVoice = useCallback(() => {
     if (isVoiceMode) {
       stopVoiceMode();
@@ -208,7 +239,11 @@ export const useVoiceTracking = (parsedText: ParsedParagraph[]) => {
     return () => {
       shouldBeOn.current = false;
       try {
-        recognitionRef.current?.stop();
+        if (recognitionRef.current) {
+          recognitionRef.current.onend = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.stop();
+        }
       } catch (e) {}
       if (volumeCheckIntervalRef.current) clearInterval(volumeCheckIntervalRef.current);
     };
