@@ -54,26 +54,35 @@ sequenceDiagram
     E->>IA: Envia prompt (com contexto de fundo)
     IA->>P: Retorna JSON { resumo, texto }
     P->>U: Exibe resumo e parágrafos modificados com toggle
-    U->>P: Clica em "Rejeitar" em parágrafos específicos
+    U->>P: Toca em alterações individuais inline (Aceitar/Rejeitar)
+    U->>P: Clica em "Editar" e faz ajustes manuais no texto
     U->>P: Clica em "Substituir Texto"
-    P->>E: Injeta texto combinando aceitos e originais
+    P->>E: Injeta texto mesclando trechos aceitos, rejeitados e editados
 ```
 
-### O Algoritmo de Alinhamento
+### O Algoritmo de Alinhamento e Diff de Palavras
 * O texto original é dividido em um array de parágrafos: `originalParas = originalText.split('\n')`.
 * O texto sugerido pela IA é dividido em um array de parágrafos: `suggestedParas = suggestedText.split('\n')`.
 * **Cenário Alinhado (Mesmo número de parágrafos)**:
-  * O sistema exibe cada parágrafo lado a lado.
-  * Se o parágrafo não foi modificado, ele é ocultado ou exibido com menor contraste.
-  * Se foi alterado, o usuário ganha um botão **Aceitar / Rejeitar**.
-  * Ao confirmar, o editor reconstrói o documento final mesclando o parágrafo sugerido (se aceito) ou mantendo o parágrafo original (se rejeitado).
+  * O sistema executa o alinhamento de palavras em cada parágrafo (`getDiffSegments` em `src/utils/text.ts`) usando o algoritmo LCS (Longest Common Subsequence).
+  * Consecutivas adições ou remoções de palavras são agrupadas em badges inline clicáveis.
+  * **Aceito (Padrão)**: Mostra as palavras sugeridas (verdes) ativas e originais riscadas (vermelhas). O texto final incluirá a revisão.
+  * **Rejeitado**: Clicar na badge desativa a sugestão. A palavra sugerida é riscada e a palavra original volta a ser ativa (normal). O texto final manterá a palavra original.
+  * Ao clicar em "Substituir", o editor reconstrói o documento mesclando cirurgicamente as decisões inline de cada parágrafo.
 * **Cenário Desalinhado (Quebra de parágrafos alterada)**:
-  * Caso a IA crie ou junte quebras de linha (mudando o tamanho dos arrays), o alinhamento 1:1 é desfeito.
-  * O sistema exibe um aviso claro ao usuário informando que a estrutura foi alterada, mostrando o bloco completo excluído em vermelho e o bloco sugerido em verde, e permitindo apenas a substituição completa.
+  * Caso a IA altere o número de quebras de parágrafos, a comparação 1:1 é desfeita. O sistema exibe o aviso estrutural clássico para substituição em bloco.
 
 ---
 
-## 4. Refinamento Context-Aware por Seleção
+## 4. Edição Manual Diretamente nas Sugestões
+Para dar total soberania ao usuário orador, o painel do Copiloto IA permite edições manuais nos boxes de revisão:
+* **Edição de Parágrafo**: Cada card de parágrafo possui um botão **"Editar"**. Ao clicar, o diff é ocultado e uma `<textarea>` é aberta com o texto sugerido. O usuário pode fazer ajustes manuais e clicar em **"Concluir"**.
+* **Re-alinhamento Dinâmico**: Ao concluir a edição manual, a engine dispara o recálculo do diff em tempo real. Os badges inline clicáveis de Aceitar/Rejeitar se atualizam imediatamente baseando-se na versão que o usuário acabou de digitar.
+* **Edição Geral**: No caso desalinhado, o bloco inteiro de sugestão da IA pode ser editado em uma caixa de texto master antes da aplicação definitiva.
+
+---
+
+## 5. Refinamento Context-Aware por Seleção
 
 Ao selecionar um trecho específico no editor e abrir a IA:
 1. O sistema armazena a seleção ativa e o local exato do cursor (`Range` temporário).
