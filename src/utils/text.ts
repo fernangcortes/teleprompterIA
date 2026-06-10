@@ -116,3 +116,59 @@ export const findBestMatch = (
     }
     return { score: bestScore, index: bestIndex };
 };
+
+export interface DiffToken {
+  type: 'added' | 'removed' | 'equal';
+  value: string;
+}
+
+export const diffWords = (original: string, suggested: string): DiffToken[] => {
+  const wordsA = original.split(/(\s+)/);
+  const wordsB = suggested.split(/(\s+)/);
+
+  const cleanA = wordsA.filter(w => w !== "");
+  const cleanB = wordsB.filter(w => w !== "");
+
+  const dp: number[][] = Array(cleanA.length + 1)
+    .fill(null)
+    .map(() => Array(cleanB.length + 1).fill(0));
+
+  for (let i = 1; i <= cleanA.length; i++) {
+    for (let j = 1; j <= cleanB.length; j++) {
+      if (cleanA[i - 1] === cleanB[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+
+  const result: DiffToken[] = [];
+  let i = cleanA.length;
+  let j = cleanB.length;
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && cleanA[i - 1] === cleanB[j - 1]) {
+      result.unshift({ type: 'equal', value: cleanA[i - 1] });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      result.unshift({ type: 'added', value: cleanB[j - 1] });
+      j--;
+    } else {
+      result.unshift({ type: 'removed', value: cleanA[i - 1] });
+      i--;
+    }
+  }
+
+  const groupedResult: DiffToken[] = [];
+  for (const token of result) {
+    if (groupedResult.length > 0 && groupedResult[groupedResult.length - 1].type === token.type) {
+      groupedResult[groupedResult.length - 1].value += token.value;
+    } else {
+      groupedResult.push(token);
+    }
+  }
+
+  return groupedResult;
+};

@@ -3,6 +3,7 @@ import { Edit3, Sparkles, Upload, Save, X, RefreshCw, AlertCircle, Check, Trash2
 import { useConfig } from "../../context/ConfigContext";
 import { gemini } from "../../services/gemini";
 import { DEFAULT_TEXT } from "../../constants";
+import { diffWords } from "../../utils/text";
 
 export const TextEditor: React.FC = () => {
   const {
@@ -547,11 +548,16 @@ export const TextEditor: React.FC = () => {
                                    }
                                    
                                    const isAccepted = acceptedParas[idx];
+                                   const diffTokens = diffWords(origPara, sugPara);
                                    
                                    return (
                                      <div 
                                        key={idx} 
-                                       className={`p-2.5 rounded-lg border transition flex flex-col gap-2 ${isAccepted ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20 opacity-55'}`}
+                                       className={`p-2.5 rounded-lg border transition duration-200 flex flex-col gap-2 hover:border-white/10 hover:bg-white/5 ${
+                                         isAccepted 
+                                           ? 'bg-green-500/5 border-green-500/20' 
+                                           : 'bg-red-500/5 border-red-500/20 opacity-55'
+                                       }`}
                                      >
                                         <div className="flex justify-between items-center text-[10px] font-bold">
                                           <span className={isAccepted ? 'text-green-400' : 'text-red-400'}>
@@ -571,15 +577,33 @@ export const TextEditor: React.FC = () => {
                                           </button>
                                         </div>
                                         
-                                        <div className="flex flex-col gap-1.5 font-mono text-[11px] leading-relaxed">
-                                          {origPara && (
-                                            <div className="text-red-400/70 line-through bg-red-950/20 p-1.5 rounded border border-red-500/10">
-                                              {origPara}
-                                            </div>
-                                          )}
-                                          <div className="text-green-400 bg-green-950/20 p-1.5 rounded border border-green-500/10">
-                                            {sugPara}
-                                          </div>
+                                        {/* Inline unified paragraph diff */}
+                                        <div className="font-sans text-[12px] leading-relaxed p-2.5 rounded bg-black/30 border border-white/5 whitespace-pre-wrap select-text">
+                                          {diffTokens.map((token, tIdx) => {
+                                            if (token.type === 'equal') {
+                                              return <span key={tIdx} className="text-slate-300">{token.value}</span>;
+                                            } else if (token.type === 'removed') {
+                                              return (
+                                                <span 
+                                                  key={tIdx} 
+                                                  className="text-red-400 line-through bg-red-500/15 px-0.5 rounded transition-all duration-200 hover:bg-red-500/35 cursor-help"
+                                                  title="Original: removido"
+                                                >
+                                                  {token.value}
+                                                </span>
+                                              );
+                                            } else {
+                                              return (
+                                                <span 
+                                                  key={tIdx} 
+                                                  className="text-green-400 underline decoration-green-500/50 bg-green-500/15 px-0.5 rounded transition-all duration-200 hover:bg-green-500/35 font-semibold cursor-help"
+                                                  title="Sugerido: adicionado"
+                                                >
+                                                  {token.value}
+                                                </span>
+                                              );
+                                            }
+                                          })}
                                         </div>
                                      </div>
                                    );
