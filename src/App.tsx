@@ -116,6 +116,30 @@ export const AppContent: React.FC = () => {
       postMessageToChannel({ type: "SCROLL_SYNC", percentage: 0 });
   }, [setPlaying, setActiveWordId, stopVoiceMode, postMessageToChannel]);
 
+  const goToNextParagraph = useCallback(() => {
+    registerInteraction();
+    let currentIndex = 0;
+    if (activeWordId) {
+      currentIndex = parsedText.findIndex(p => p.words.some(w => w.id === activeWordId));
+      if (currentIndex === -1) currentIndex = 0;
+    }
+    const nextIndex = Math.min(currentIndex + 1, parsedText.length - 1);
+    const firstWordId = parsedText[nextIndex]?.words[0]?.id;
+    if (firstWordId) scrollToWord(firstWordId);
+  }, [parsedText, activeWordId, scrollToWord, registerInteraction]);
+
+  const goToPrevParagraph = useCallback(() => {
+    registerInteraction();
+    let currentIndex = 0;
+    if (activeWordId) {
+      currentIndex = parsedText.findIndex(p => p.words.some(w => w.id === activeWordId));
+      if (currentIndex === -1) currentIndex = 0;
+    }
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    const firstWordId = parsedText[prevIndex]?.words[0]?.id;
+    if (firstWordId) scrollToWord(firstWordId);
+  }, [parsedText, activeWordId, scrollToWord, registerInteraction]);
+
   const jumpToParagraph = (idx: number) => {
      const firstWordId = parsedText.find(p => p.originalIndex === idx)?.words[0]?.id;
      if (firstWordId) scrollToWord(firstWordId);
@@ -184,6 +208,8 @@ export const AppContent: React.FC = () => {
         setRightSidebarOpen(newState);
     }
     if (e.key === "/") { setShowShortcutOverlay(p => !p); }
+    if (e.code === "ArrowRight" || e.code === "PageDown") { goToNextParagraph(); }
+    if (e.code === "ArrowLeft" || e.code === "PageUp") { goToPrevParagraph(); }
 
     if (e.code === "KeyM" || e.code === "KeyL" || e.code === "ArrowUp") {
         registerInteraction();
@@ -217,7 +243,7 @@ export const AppContent: React.FC = () => {
     fontSize, margin, setPlaying, setSpeed, setEditorOpen, setShowSettings, setShowDocs, 
     startCourse, handleRestart, setMirrorX, setMirrorY, toggleVoice, 
     setLeftSidebarOpen, setRightSidebarOpen, setShowShortcutOverlay, registerInteraction, 
-    setFontSize, setMargin
+    setFontSize, setMargin, goToNextParagraph, goToPrevParagraph
   ]);
 
   // Listen for local keyboard shortcuts
@@ -236,7 +262,7 @@ export const AppContent: React.FC = () => {
       });
 
       // Prevent scrolling defaults for specific hotkeys
-      if (["Space", "ArrowUp", "ArrowDown", "KeyK"].includes(e.code)) {
+      if (["Space", "ArrowUp", "ArrowDown", "KeyK", "PageUp", "PageDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
         e.preventDefault();
       }
     };

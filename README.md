@@ -70,14 +70,24 @@ Durante a apresentação ou edição, os seguintes atalhos estão ativos no tele
 
 | Tecla | Ação |
 |---|---|
-| `Espaço` | Iniciar / Pausar rolagem |
+| `Espaço` / `K` | Iniciar / Pausar rolagem |
 | `V` | Ligar / Desligar modo Rolagem por Voz |
 | `E` | Abrir / Fechar Editor de Roteiro |
-| `M` | Ligar / Desligar Espelhamento Horizontal (Mirror X) |
-| `N` | Ligar / Desligar Espelhamento Vertical (Mirror Y) |
-| `Ctrl + Scroll` | Zoom de tamanho da fonte (com o editor ou atalhos selecionados) |
-| `[ / ]` | Ajustar margem esquerda e direita (leitura confortável) |
-| `Seta Cima / Baixo` | Aumentar / Diminuir velocidade de rolagem constante |
+| `T` | Abrir Configurações |
+| `I` | Abrir Informações & Ajuda |
+| `B` | Recolher / Mostrar Barras Laterais (Tela Cheia) |
+| `W` | Abrir Janela Externa de Projeção |
+| `X` | Ligar / Desligar Espelhamento Horizontal (Mirror X) |
+| `Y` | Ligar / Desligar Espelhamento Vertical (Mirror Y) |
+| `R` | Reiniciar Roteiro para o início |
+| `H` | Iniciar Tour Guiado |
+| `Seta Direita` / `PageDown` | Avançar para o próximo parágrafo |
+| `Seta Esquerda` / `PageUp` | Voltar para o parágrafo anterior |
+| `Seta Cima` / `L` / `M` | Aumentar velocidade de rolagem |
+| `Seta Baixo` / `J` / `N` | Diminuir velocidade de rolagem |
+| `+` / `-` | Aumentar / Diminuir tamanho da fonte |
+| `[ / ]` | Ajustar margens laterais |
+| `/` | Exibir / Ocultar guia flutuante de atalhos |
 
 ---
 

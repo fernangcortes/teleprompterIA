@@ -88,6 +88,8 @@ export const FloatingShortcuts: React.FC = () => {
       Y · Espelhar (V)<br/>
       R · Reiniciar Texto<br/>
       H · Tour Guiado<br/>
+      ←/PgUp · Parágrafo Ant.<br/>
+      →/PgDn · Parágrafo Prox.<br/>
       <span style={{ opacity: 0.5 }}>───────────</span><br/>
       J/↓ · − Velocidade<br/>
       L/↑ · + Velocidade<br/>

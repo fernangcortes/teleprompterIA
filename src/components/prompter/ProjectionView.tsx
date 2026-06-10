@@ -128,7 +128,7 @@ export const ProjectionView: React.FC = () => {
         }
       });
       // Prevent default for common shortcuts
-      if (['Space', 'KeyK', 'KeyR', 'KeyV', 'ArrowUp', 'ArrowDown'].includes(e.code)) {
+      if (['Space', 'KeyK', 'KeyR', 'KeyV', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
         e.preventDefault();
       }
     };
