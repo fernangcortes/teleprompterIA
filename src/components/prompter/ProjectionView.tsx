@@ -53,6 +53,11 @@ export const ProjectionView: React.FC = () => {
       if (!e.data) return;
 
       switch (e.data.type) {
+        case "PING_PROJECTION":
+          // Reply to notify main window that we are still alive and active
+          channel.postMessage({ type: "REQUEST_INITIAL_STATE" });
+          break;
+
         case "INITIAL_STATE":
           if (e.data.text !== undefined) setText(e.data.text);
           if (e.data.activeWordId !== undefined) setActiveWordId(e.data.activeWordId);
@@ -130,12 +135,20 @@ export const ProjectionView: React.FC = () => {
 
     window.addEventListener("keydown", handleKeyDown);
 
+    // Handle closing/refreshing window to notify operator
+    const handleBeforeUnload = () => {
+      channel.postMessage({ type: "PROJECTION_CLOSED" });
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     // Document title
     document.title = `${theme.appName} - Projeção`;
 
     return () => {
       channel.removeEventListener("message", handleMessage);
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      channel.postMessage({ type: "PROJECTION_CLOSED" });
       channel.close();
     };
   }, [theme.appName]);

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { useConfig } from "./context/ConfigContext";
 import { usePlayback } from "./context/PlaybackContext";
+import { useCourse } from "./context/CourseContext";
 import { usePrompterEngine } from "./hooks/usePrompterEngine";
 import { useVoiceTracking } from "./hooks/useVoiceTracking";
 import { normalizeText } from "./utils/text";
@@ -45,9 +46,6 @@ export const AppContent: React.FC = () => {
     setShowSettings,
     showDocs,
     setShowDocs,
-    isTourActive,
-    setIsTourActive,
-    setTourStep,
     leftSidebarOpen,
     setLeftSidebarOpen,
     rightSidebarOpen,
@@ -55,6 +53,8 @@ export const AppContent: React.FC = () => {
     showShortcutOverlay,
     setShowShortcutOverlay
   } = useConfig();
+
+  const { startCourse } = useCourse();
 
   const {
     isPlaying,
@@ -121,6 +121,17 @@ export const AppContent: React.FC = () => {
      if (firstWordId) scrollToWord(firstWordId);
   };
 
+  const togglePopup = useCallback(() => {
+    const win = window.open(
+      window.location.origin + "?projection=true", 
+      "PrompterWindow", 
+      "width=1000,height=800,menubar=no,toolbar=no,location=no"
+    );
+    if (!win) {
+      alert("Pop-up bloqueado! Por favor, libere popups para este site.");
+    }
+  }, []);
+
   // Sync state when requested by projection window
   useEffect(() => {
     if (!broadcastChannel) return;
@@ -161,7 +172,8 @@ export const AppContent: React.FC = () => {
     if (e.code === "KeyE") { setEditorOpen(!isEditorOpen); }
     if (e.code === "KeyT") { setShowSettings(true); }
     if (e.code === "KeyI") { setShowDocs(true); }
-    if (e.code === "KeyH" || (e.shiftKey && e.code === "Slash")) { setIsTourActive(true); setTourStep(0); }
+    if (e.code === "KeyH" || (e.shiftKey && e.code === "Slash")) { startCourse(); }
+    if (e.code === "KeyW") { togglePopup(); }
     if (e.code === "KeyR") { handleRestart(); }
     if (e.code === "KeyX") { setMirrorX(!mirrorX); }
     if (e.code === "KeyY") { setMirrorY(!mirrorY); }
@@ -203,7 +215,7 @@ export const AppContent: React.FC = () => {
   }, [
     isPlaying, speed, isEditorOpen, mirrorX, mirrorY, leftSidebarOpen, rightSidebarOpen, 
     fontSize, margin, setPlaying, setSpeed, setEditorOpen, setShowSettings, setShowDocs, 
-    setIsTourActive, setTourStep, handleRestart, setMirrorX, setMirrorY, toggleVoice, 
+    startCourse, handleRestart, setMirrorX, setMirrorY, toggleVoice, 
     setLeftSidebarOpen, setRightSidebarOpen, setShowShortcutOverlay, registerInteraction, 
     setFontSize, setMargin
   ]);
@@ -263,6 +275,9 @@ export const AppContent: React.FC = () => {
       }}
     >
       <style>{`
+        :root {
+          --theme-primary: ${theme.primaryColor};
+        }
         ::selection { background-color: ${theme.primaryColor}; color: ${theme.backgroundColor}; }
         .prompter-text span.active-word { color: ${theme.activeWordColor}; text-shadow: 0 0 15px ${theme.primaryColor}CC; }
         ::-webkit-scrollbar-thumb { background: ${theme.surfaceColor}; }
@@ -270,7 +285,7 @@ export const AppContent: React.FC = () => {
       `}</style>
 
       {/* LEFT SIDEBAR */}
-      <LeftSidebar onRestart={handleRestart} />
+      <LeftSidebar onRestart={handleRestart} onTogglePopup={togglePopup} />
 
       {/* CENTER VIEWPORT CONTAINER */}
       <div className="flex-1 relative flex overflow-hidden h-full min-w-0">

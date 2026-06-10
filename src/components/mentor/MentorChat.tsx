@@ -1,11 +1,14 @@
 import React, { useState, useRef } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { MessageCircle, X, Send, Sparkles } from "lucide-react";
 import { useConfig } from "../../context/ConfigContext";
+import { useCourse } from "../../context/CourseContext";
+import { ROTEIRO_COM_ERROS } from "../../constants/courseLessons";
 import { gemini } from "../../services/gemini";
 import ChatMessageBubble from "./ChatMessageBubble";
 
 export const MentorChat: React.FC = () => {
-  const { showChat, setShowChat, text: currentText, theme } = useConfig();
+  const { showChat, setShowChat, text: currentText, theme, setText, setEditorOpen } = useConfig();
+  const { isCourseActive, currentStep } = useCourse();
   
   const [messages, setMessages] = useState<{ role: 'user' | 'model'; text: string }[]>([]);
   const [input, setInput] = useState("");
@@ -48,8 +51,19 @@ export const MentorChat: React.FC = () => {
         parts: [{ text: m.text }]
     }));
 
+    // If course is active, inject the current step's mentorContext as system instruction
+    const systemOverride = isCourseActive && currentStep?.mentorContext
+      ? `Você é o "Mentor de Palco", um mascote assistente especialista no software teleprompterIA e em produção audiovisual.
+         
+         O usuário está participando de um Curso Prático Interativo e está atualmente na lição: "${currentStep.title}".
+         INSTRUÇÃO ESPECÍFICA PARA A ETAPA ATUAL:
+         ${currentStep.mentorContext}
+         
+         Seja breve, útil, encorajador e focado em ajudar o usuário a concluir a tarefa desta etapa específica. Mantenha a personalidade de um diretor de estúdio profissional.`
+      : undefined;
+
     try {
-      const response = await gemini.chat(userMsg, currentText, history);
+      const response = await gemini.chat(userMsg, currentText, history, systemOverride);
       setMessages(prev => [...prev, { role: 'model', text: response }]);
     } catch (err) {
       console.error(err);
@@ -104,6 +118,25 @@ export const MentorChat: React.FC = () => {
          ))}
          {loading && <div className="text-xs italic opacity-60" style={{ color: theme.textColor }}>Digitando...</div>}
       </div>
+      {isCourseActive && currentStep.id === 'test_text_input' && (
+        <div className="px-3 py-2 border-t border-white/5 flex justify-center bg-blue-500/10 shrink-0">
+          <button
+            onClick={() => {
+              setText(ROTEIRO_COM_ERROS);
+              setEditorOpen(true);
+              setMessages(prev => [
+                ...prev,
+                { role: 'user', text: "Gerar roteiro de teste" },
+                { role: 'model', text: "Com certeza, Diretor! Ingeri um roteiro de teste cheio de erros de português, abreviações de internet (vcs, mt, q) e repetições de palavras no seu editor de texto.\n\nAgora, abra o **Assistente IA** (clicando no botão 'Assistente IA' no topo do Editor) e selecione **'Corrigir Gramática'** ou **'Sugerir Melhorias'** para ver a mágica da inteligência artificial ajustando o roteiro em tempo real!" }
+              ]);
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition cursor-pointer select-none border-0"
+          >
+            <Sparkles size={14} />
+            <span>Gerar Roteiro de Teste</span>
+          </button>
+        </div>
+      )}
       <div className="p-2 border-t flex gap-2" style={{ backgroundColor: theme.surfaceColor, borderColor: `${theme.textColor}33` }}>
         <input 
             className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none bg-black/20"

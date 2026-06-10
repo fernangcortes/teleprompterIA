@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { ConfigProvider } from "./context/ConfigContext";
 import { PlaybackProvider } from "./context/PlaybackContext";
+import { CourseProvider } from "./context/CourseContext";
 import "./index.css";
 
 const container = document.getElementById("root");
@@ -12,7 +13,9 @@ if (container) {
     <React.StrictMode>
       <ConfigProvider>
         <PlaybackProvider>
-          <App />
+          <CourseProvider>
+            <App />
+          </CourseProvider>
         </PlaybackProvider>
       </ConfigProvider>
     </React.StrictMode>

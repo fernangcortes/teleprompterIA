@@ -1,7 +1,7 @@
 import React from "react";
 import { 
   ChevronLeft, ChevronRight, Mic, MicOff, Pause, Play, 
-  Rabbit, Type, Monitor, Volume2, Gauge 
+  Rabbit, Type, Monitor, Volume2, Gauge, Mail, MessageCircle, RefreshCw
 } from "lucide-react";
 import { useConfig } from "../../context/ConfigContext";
 import { usePlayback } from "../../context/PlaybackContext";
@@ -9,9 +9,10 @@ import Tooltip from "../common/Tooltip";
 
 interface RightSidebarProps {
   onToggleVoice: () => void;
+  onRestart: () => void;
 }
 
-export const RightSidebar: React.FC<RightSidebarProps> = ({ onToggleVoice }) => {
+export const RightSidebar: React.FC<RightSidebarProps> = ({ onToggleVoice, onRestart }) => {
   const {
     rightSidebarOpen,
     setRightSidebarOpen,
@@ -125,16 +126,16 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onToggleVoice }) => 
                     <span className="ml-auto text-xs font-mono relative z-10" style={{ color: isPlaying ? `${theme.backgroundColor}99` : 'rgba(255,255,255,0.6)' }}>(Espaço)</span>
                 </button>
               </Tooltip>
-            <Tooltip label="Exibe um guia flutuante de atalhos. Arraste para mover, scroll para redimensionar. (Atalho: /)" side="right" className="w-full">
+            <Tooltip label="Retorna o texto para a posição inicial. (Atalho: R)" side="left" className="w-full">
               <button 
-                id="btn-shortcuts" 
-                onClick={() => setShowShortcutOverlay(p => !p)} 
-                className={`w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10 cursor-pointer`} 
-                style={{ color: showShortcutOverlay ? theme.primaryColor : theme.textColor }}
+                id="btn-restart" 
+                onClick={onRestart} 
+                className="w-full flex items-center justify-start gap-4 p-3.5 hover:bg-white/5 rounded-xl opacity-70 hover:opacity-100 transition cursor-pointer"
+                style={{ color: theme.textColor }}
               >
-                 <span className="text-lg leading-none">⌨</span>
-                 <span className="font-medium text-sm whitespace-nowrap">Guia de Atalhos</span>
-                 <span className="ml-auto text-xs opacity-50 font-mono">(/)</span>
+                  <RefreshCw size={20} />
+                  <span className="font-medium text-sm whitespace-nowrap">Reiniciar Texto</span>
+                  <span className="ml-auto text-xs opacity-50 font-mono">(R)</span>
               </button>
             </Tooltip>
           </div>
@@ -273,6 +274,33 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onToggleVoice }) => 
                       </Tooltip>
                    </>
                )}
+          </div>
+
+          {/* SUPPORT / BUG REPORT BUTTONS */}
+          <div className="flex flex-col gap-2 mt-auto w-full pt-4 border-t border-white/10 shrink-0">
+              <span className="text-[10px] font-bold opacity-50 uppercase tracking-wider text-center select-none" style={{ color: theme.textColor }}>
+                  Bugou? Pode melhorar? Fale com o desenvolvedor:
+              </span>
+              <div className="flex items-center justify-center gap-4">
+                  <Tooltip label="WhatsApp (+55 62 98189-9522)" side="top">
+                      <a 
+                          href="https://wa.me/5562981899522" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer text-white/70 hover:text-white"
+                      >
+                          <MessageCircle size={20} />
+                      </a>
+                  </Tooltip>
+                  <Tooltip label="E-mail (vozesdoasfalto@gmail.com)" side="top">
+                      <a 
+                          href="mailto:vozesdoasfalto@gmail.com" 
+                          className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer text-white/70 hover:text-white"
+                      >
+                          <Mail size={20} />
+                      </a>
+                  </Tooltip>
+              </div>
           </div>
 
           {isVoiceMode && liveTranscript && (

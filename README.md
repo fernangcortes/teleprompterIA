@@ -26,6 +26,10 @@ O projeto foi totalmente reestruturado em uma arquitetura modular moderna no eco
   * Painel flutuante de atalhos e status que pode ser arrastado pela tela e redimensionado.
 * **🧠 Mentor de Palco (Chat)**:
   * Um assistente de IA especialista em oratória e estúdio de gravação que dá feedbacks rápidos estruturados como um balão de fala de quadrinhos.
+* **🎓 Curso Prático Interativo**:
+  * Uma trilha de aprendizado imersiva dividida em 12 lições práticas com validação em tempo real das ações do usuário (abrir editor, selecionar texto, configurar APIs, mudar temas, abrir projeção, usar atalhos, etc.).
+  * Possui balão flutuante arrastável, checklist dinâmico de objetivos compostos e botão de avançar progressivo.
+  * Veja mais detalhes técnicos no [Guia do Curso Interativo](file:///curso_interativo/CURSO_INTERATIVO.md).
 
 ---
 

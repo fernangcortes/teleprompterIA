@@ -93,3 +93,20 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Subtle Course Spotlight pulse glow */
+.course-spotlight-active {
+  box-shadow: 0 0 0 2px var(--theme-primary, #008280), 0 0 12px rgba(0, 130, 128, 0.4) !important;
+  animation: course-subtle-glow 2s infinite ease-in-out !important;
+  position: relative !important;
+  z-index: 50 !important;
+}
+
+@keyframes course-subtle-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 2px var(--theme-primary, #008280), 0 0 8px rgba(0, 130, 128, 0.3) !important;
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--theme-primary, #008280), 0 0 18px rgba(0, 130, 128, 0.6) !important;
+  }
+}

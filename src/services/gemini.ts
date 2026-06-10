@@ -171,7 +171,12 @@ Você DEVE retornar estritamente um objeto JSON com o seguinte formato, sem expl
     }
   }
 
-  async chat(message: string, currentText: string, history: any[] = []): Promise<string> {
+  async chat(
+    message: string, 
+    currentText: string, 
+    history: any[] = [], 
+    systemInstructionOverride?: string
+  ): Promise<string> {
       if (this.model === 'deepseek-v4-flash') {
         if (!this.deepseekApiKey) throw new Error("no_api_key");
         try {
@@ -191,7 +196,7 @@ Você DEVE retornar estritamente um objeto JSON com o seguinte formato, sem expl
               messages: [
                 {
                   role: "system",
-                  content: `Você é o "Mentor de Palco", um mascote assistente especialista no software teleprompterIA e em produção audiovisual.
+                  content: systemInstructionOverride || `Você é o "Mentor de Palco", um mascote assistente especialista no software teleprompterIA e em produção audiovisual.
                   
                   PERSONALIDADE:
                   Você é um diretor de estúdio experiente, carismático e técnico. Você fala como se estivesse em um set de filmagem.
@@ -222,7 +227,7 @@ Você DEVE retornar estritamente um objeto JSON com o seguinte formato, sem expl
           const chat = this.ai.chats.create({
               model: this.model,
               config: {
-                  systemInstruction: `
+                  systemInstruction: systemInstructionOverride || `
                     Você é o "Mentor de Palco", um mascote assistente especialista no software teleprompterIA e em produção audiovisual.
                     
                     PERSONALIDADE:

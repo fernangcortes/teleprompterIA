@@ -1,17 +1,20 @@
 import React from "react";
 import { 
   ChevronLeft, ChevronRight, FileText, MessageCircle, Settings, 
-  FlipHorizontal, MoveVertical, MonitorPlay, RefreshCw, CircleHelp, Info 
+  FlipHorizontal, MoveVertical, MonitorPlay, RefreshCw, Info,
+  GraduationCap
 } from "lucide-react";
 import { useConfig } from "../../context/ConfigContext";
 import { usePlayback } from "../../context/PlaybackContext";
+import { useCourse } from "../../context/CourseContext";
 import Tooltip from "../common/Tooltip";
 
 interface LeftSidebarProps {
   onRestart: () => void;
+  onTogglePopup: () => void;
 }
 
-export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onRestart }) => {
+export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onRestart, onTogglePopup }) => {
   const {
     leftSidebarOpen,
     setLeftSidebarOpen,
@@ -61,18 +64,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onRestart }) => {
   };
 
   const { isPlaying } = usePlayback();
+  const { isCourseActive, currentStepIndex, startCourse, exitCourse, resetCourse } = useCourse();
 
-  // Open projection window in a new tab/window
-  const togglePopup = () => {
-    const win = window.open(
-      window.location.origin + "?projection=true", 
-      "PrompterWindow", 
-      "width=1000,height=800,menubar=no,toolbar=no,location=no"
-    );
-    if (!win) {
-      alert("Pop-up bloqueado! Por favor, libere popups para este site.");
-    }
-  };
+
 
   if (!leftSidebarOpen) {
     return (
@@ -162,7 +156,55 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onRestart }) => {
               </button>
             </Tooltip>
 
+            <Tooltip label="Curso Prático Interativo para aprender a dominar o teleprompterIA." side="right" className="w-full">
+              <button 
+                id="btn-course" 
+                onClick={() => {
+                  if (isCourseActive) {
+                    exitCourse();
+                  } else {
+                    if (currentStepIndex > 0) {
+                      const restart = window.confirm("Deseja reiniciar o curso do início? Clique em 'Cancelar' para retomar de onde parou.");
+                      if (restart) {
+                        resetCourse();
+                      }
+                    }
+                    startCourse();
+                  }
+                }} 
+                className="w-full flex items-center justify-start gap-4 p-3.5 rounded-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer" 
+                style={{ 
+                  backgroundColor: isCourseActive ? theme.textColor : 'transparent', 
+                  color: isCourseActive ? theme.backgroundColor : theme.textColor 
+                }}
+              >
+                  <GraduationCap size={20} />
+                  <span className="font-medium text-sm whitespace-nowrap">Curso Prático</span>
+                  {isCourseActive && (
+                    <span className="ml-auto text-[10px] bg-red-500 text-white font-bold px-1.5 py-0.5 rounded-full font-mono">
+                      {currentStepIndex + 1}
+                    </span>
+                  )}
+              </button>
+            </Tooltip>
+
             <div className="w-full h-px my-2" style={{ backgroundColor: `${theme.textColor}22` }}></div>
+
+            <Tooltip label="Abre a janela de projeção secundária. (Atalho: W)" side="right" className="w-full">
+              <button 
+                id="btn-popup" 
+                onClick={onTogglePopup} 
+                className={`w-full flex items-center justify-start gap-4 p-3.5 rounded-xl transition hover:scale-[1.02] border cursor-pointer bg-transparent`} 
+                style={{ 
+                  color: theme.textColor, 
+                  borderColor: `${theme.textColor}33` 
+                }}
+              >
+                  <MonitorPlay size={20} />
+                  <span className="font-medium text-sm whitespace-nowrap">Janela Externa</span>
+                  <span className="ml-auto text-xs opacity-50 font-mono">(W)</span>
+              </button>
+            </Tooltip>
 
             <Tooltip label="Inverte o texto horizontalmente para leitura em espelho reflexivo." side="right" className="w-full">
               <button 
@@ -189,64 +231,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onRestart }) => {
                   <span className="ml-auto text-xs opacity-50 font-mono">(Y)</span>
               </button>
             </Tooltip>
-            
-            <Tooltip label="Abre a janela de projeção secundária. (Atalho: W)" side="right" className="w-full">
-              <button 
-                id="btn-popup" 
-                onClick={togglePopup} 
-                className={`w-full flex items-center justify-start gap-4 p-3.5 rounded-xl transition hover:scale-[1.02] border cursor-pointer bg-transparent`} 
-                style={{ 
-                  color: theme.textColor, 
-                  borderColor: `${theme.textColor}33` 
-                }}
-              >
-                  <MonitorPlay size={20} />
-                  <span className="font-medium text-sm whitespace-nowrap">Janela Externa</span>
-                  <span className="ml-auto text-xs opacity-50 font-mono">(W)</span>
-              </button>
-            </Tooltip>
-            
-            <Tooltip label="Retorna o texto para a posição inicial." side="right" className="w-full">
-              <button 
-                id="btn-restart" 
-                onClick={onRestart} 
-                className="w-full flex items-center justify-start gap-4 p-3.5 hover:bg-white/5 rounded-xl opacity-70 hover:opacity-100 transition cursor-pointer"
-              >
-                  <RefreshCw size={20} />
-                  <span className="font-medium text-sm whitespace-nowrap">Reiniciar Texto</span>
-                  <span className="ml-auto text-xs opacity-50 font-mono">(R)</span>
-              </button>
-            </Tooltip>
          </div>
 
          <div className="flex flex-col gap-3 mt-auto w-full">
-           <Tooltip label="Revise o tour guiado por todas as funções principais." side="right" className="w-full">
-             <button 
-               id="btn-tour" 
-               onClick={() => { setIsTourActive(true); setTourStep(0); }} 
-               className="w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10 cursor-pointer" 
-               style={{ color: theme.primaryColor }}
-             >
-                 <CircleHelp size={18} />
-                 <span className="font-medium text-sm whitespace-nowrap">Tour Guiado</span>
-                 <span className="ml-auto text-xs opacity-50 font-mono">(H)</span>
-             </button>
-           </Tooltip>
-           <Tooltip label="Veja informações sobre o desenvolvedor e roadmap do projeto." side="right" className="w-full">
-             <button 
-               id="btn-docs" 
-               onClick={() => setShowDocs(true)} 
-               className="w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10 cursor-pointer" 
-               style={{ color: theme.textColor }}
-             >
-                 <Info size={18} />
-                 <span className="font-medium text-sm whitespace-nowrap">Info & Roadmap</span>
-                 <span className="ml-auto text-xs opacity-50 font-mono">(I)</span>
-             </button>
-           </Tooltip>
-         </div>
-
-         <div className="flex flex-col w-full">
             <Tooltip label="Exibe um guia flutuante de atalhos. Arraste para mover, scroll para redimensionar. (Atalho: /)" side="right" className="w-full">
               <button 
                 id="btn-shortcuts" 
@@ -254,13 +241,26 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onRestart }) => {
                 className={`w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10 cursor-pointer`} 
                 style={{ color: showShortcutOverlay ? theme.primaryColor : theme.textColor }}
               >
-                 <span className="text-lg leading-none">⌨</span>
-                 <span className="font-medium text-sm whitespace-nowrap">Guia de Atalhos</span>
-                 <span className="ml-auto text-xs opacity-50 font-mono">(/)</span>
+                  <span className="text-lg leading-none">⌨</span>
+                  <span className="font-medium text-sm whitespace-nowrap">Guia de Atalhos</span>
+                  <span className="ml-auto text-xs opacity-50 font-mono">(/)</span>
               </button>
             </Tooltip>
-          </div>
-          
+            
+            <Tooltip label="Veja informações sobre o desenvolvedor e roadmap do projeto." side="right" className="w-full">
+              <button 
+                id="btn-docs" 
+                onClick={() => setShowDocs(true)} 
+                className="w-full flex items-center justify-start gap-4 p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] opacity-80 hover:opacity-100 hover:bg-white/10 cursor-pointer" 
+                style={{ color: theme.textColor }}
+              >
+                  <Info size={18} />
+                  <span className="font-medium text-sm whitespace-nowrap">Info & Roadmap</span>
+                  <span className="ml-auto text-xs opacity-50 font-mono">(I)</span>
+              </button>
+            </Tooltip>
+         </div>
+
           {/* Drag Resizing Handle */}
           <div 
             className="absolute top-0 right-0 w-[6px] h-full cursor-col-resize hover:bg-blue-500/20 active:bg-blue-500 transition-colors z-50 group"

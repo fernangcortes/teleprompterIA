@@ -135,22 +135,6 @@ No menu de temas (T), você pode alterar o nome do app, cores e fazer upload da 
 ## 💡 Sugestões?
 Entre em contato: escrevaprofernando@gmail.com`
 };
-
-export const TOUR_STEPS = [
-  { target: null, title: "Bem-vindo ao teleprompterIA!", content: "Vamos fazer um tour rápido pelas funcionalidades desta ferramenta profissional. Suas barras de ferramentas agora são laterais e retráteis para maximizar o espaço de leitura. Use o atalho 'B' para recolher ambas simultaneamente." },
-  { target: "btn-editor", title: "Editor de Texto (Atalho: E)", content: "Edite seu roteiro rapidamente. O texto é salvo automaticamente no seu navegador. O tamanho do texto e as margens da tela de leitura podem ser configurados na barra da direita." },
-  { target: "btn-ai", title: "Assistente IA (Atalho: A)", content: "Crie ou melhore seus textos com o assistente inteligente integrado. Traduza, resuma ou ajuste o tom da sua mensagem em segundos." },
-  { target: "btn-chat", title: "Mentor de Palco", content: "Nosso especialista. Converse com ele sobre técnicas de apresentação, dicas de luz, câmera e performance." },
-  { target: "btn-theme", title: "Temas e Marca (Atalho: T)", content: "Mude a paleta de cores (Surface, Primary, Texto) ou use as predefinições de dark mode. Insira sua própria logo no canto da tela." },
-  { target: "btn-mirror", title: "Espelhamento (Atalho: X e Y)", content: "Ao usar um hardware de teleprompter com espelho reflexivo, inverta a tela no eixo X ou Y para que o texto fique legível." },
-  { target: "btn-popup", title: "Janela Pop-up (Atalho: W)", content: "Abre o prompter em uma segunda janela independente e limpa. Ela espelha automaticamente as configurações e a posição do texto." },
-  { target: "btn-voice", title: "Modo de Voz (Atalho: V)", content: "O diferencial do teleprompterIA: a IA te escuta e rola a tela acompanhando a sua fala." },
-  { target: "btn-speed", title: "Velocidade (Atalhos: M/N ou Setas)", content: "No modo manual, ajuste a velocidade da rolagem." },
-  { target: "btn-font", title: "Tamanho (Atalhos: +/-)", content: "Ajuste o tamanho do texto da leitura." },
-  { target: "btn-margin", title: "Margem (Atalhos: [ e ])", content: "Controle as margens laterais do texto." },
-  { target: "right-sidebar", title: "Foco de Leitura", content: "Ajuste a posição da linha guia que te ajuda a não se perder no texto." }
-];
-
 export const DEFAULT_TEXT = `GUIA AVANÇADO - DOMINANDO O TELEPROMPTERIA
 Olá e seja muito bem-vindo a uma nova experiência de leitura e apresentação. Se você está lendo este texto agora, significa que você deu o primeiro passo para transformar a maneira como se comunica com o seu público. Este não é apenas um teleprompter comum; é uma ferramenta desenhada para potencializar a sua oratória, garantindo que cada palavra seja entregue com precisão, confiança e naturalidade.
 Imagine poder falar para a câmera sem aquela sensação robótica de quem está apenas lendo um texto. Com o teleprompterIA, o controle está literalmente em suas mãos ou no ritmo da sua voz. A tecnologia de rolagem suave que implementamos permite que o texto flua como água, adaptando-se à sua velocidade natural de fala, e não o contrário. Você não precisa mais correr atrás das palavras ou esperar que elas apareçam de repente na tela, quebrando o seu raciocínio.
