@@ -3,7 +3,7 @@ import { Edit3, Sparkles, Upload, Save, X, RefreshCw, AlertCircle, Check, Trash2
 import { useConfig } from "../../context/ConfigContext";
 import { gemini } from "../../services/gemini";
 import { DEFAULT_TEXT } from "../../constants";
-import { diffWords } from "../../utils/text";
+import { diffWords, getDiffSegments } from "../../utils/text";
 
 export const TextEditor: React.FC = () => {
   const {
@@ -48,6 +48,14 @@ export const TextEditor: React.FC = () => {
   const [suggestedParas, setSuggestedParas] = useState<string[]>([]);
   const [acceptedParas, setAcceptedParas] = useState<boolean[]>([]);
   const [aiSummary, setAiSummary] = useState<string>("");
+
+  // Individual change toggle state
+  const [acceptedChanges, setAcceptedChanges] = useState<Record<string, boolean>>({});
+
+  // Manual paragraph editing states
+  const [editingParaIdx, setEditingParaIdx] = useState<number | null>(null);
+  const [tempEditValue, setTempEditValue] = useState<string>("");
+  const [isEditingUnaligned, setIsEditingUnaligned] = useState<boolean>(false);
 
   // Window resize tracking
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -226,6 +234,14 @@ export const TextEditor: React.FC = () => {
     }
   };
 
+  const clearAISuggestion = () => {
+    setAiSuggestion(null);
+    setAcceptedChanges({});
+    setEditingParaIdx(null);
+    setTempEditValue("");
+    setIsEditingUnaligned(false);
+  };
+
   // AI Suggestion Apply (Combines original and accepted paragraphs)
   const applyAISuggestion = () => {
     if (!aiSuggestion) return;
@@ -236,7 +252,19 @@ export const TextEditor: React.FC = () => {
     if (isAligned) {
       const finalTargetParas = originalParas.map((orig, idx) => {
         const sug = suggestedParas[idx];
-        return (sug !== undefined && acceptedParas[idx]) ? sug : orig;
+        if (sug === undefined) return orig;
+        if (!acceptedParas[idx]) return orig;
+        
+        // Reconstruct paragraph from individual change segments
+        const segments = getDiffSegments(orig, sug, idx);
+        return segments.map(seg => {
+          if (seg.type === 'equal') {
+            return seg.value;
+          } else {
+            const isChangeAccepted = acceptedChanges[seg.id] !== false;
+            return isChangeAccepted ? seg.added : seg.removed;
+          }
+        }).join("");
       });
       finalTargetText = finalTargetParas.join("\n");
     } else {
@@ -264,7 +292,7 @@ export const TextEditor: React.FC = () => {
         editorRef.current.innerHTML = textToHtml(finalTargetText);
       }
     }
-    setAiSuggestion(null);
+    clearAISuggestion();
   };
 
   // Perform AI action specifically on selected text
@@ -273,7 +301,7 @@ export const TextEditor: React.FC = () => {
     
     setAiLoading(true);
     setAiError(null);
-    setAiSuggestion(null);
+    clearAISuggestion();
     
     try {
       const res = await gemini.generate(selectionPrompt, selectedText, text);
@@ -301,7 +329,7 @@ export const TextEditor: React.FC = () => {
   const handleQuickAIAction = async (presetPrompt: string) => {
     setAiLoading(true);
     setAiError(null);
-    setAiSuggestion(null);
+    clearAISuggestion();
     
     const isSelectionActive = savedRange && selectedText.trim() !== "";
     const targetText = isSelectionActive ? selectedText : text;
@@ -331,7 +359,7 @@ export const TextEditor: React.FC = () => {
     if (!aiCustomPrompt) return;
     setAiLoading(true);
     setAiError(null);
-    setAiSuggestion(null);
+    clearAISuggestion();
     
     const isSelectionActive = savedRange && selectedText.trim() !== "";
     const targetText = isSelectionActive ? selectedText : text;
@@ -503,7 +531,7 @@ export const TextEditor: React.FC = () => {
                                  <Sparkles size={12}/> Sugestões de Alteração
                                </span>
                                <button 
-                                 onClick={() => setAiSuggestion(null)} 
+                                 onClick={clearAISuggestion} 
                                  className="text-[10px] opacity-60 hover:opacity-100 flex items-center gap-1 cursor-pointer"
                                  title="Descartar sugestão"
                                >
@@ -524,17 +552,48 @@ export const TextEditor: React.FC = () => {
                                  <div className="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-[11px] text-yellow-300 leading-snug">
                                    ⚠️ A IA reorganizou os parágrafos (alterou o número total de quebras de linha). A alteração deve ser aceita ou rejeitada por completo.
                                  </div>
-                                 <div className="flex-1 overflow-y-auto p-2 bg-black/40 border border-white/5 rounded text-xs space-y-3">
-                                   <div className="text-red-400/70 line-through bg-red-950/20 p-2 rounded border border-red-500/10 whitespace-pre-wrap">
-                                     {originalParas.join("\n")}
-                                   </div>
-                                   <div className="text-green-400 bg-green-950/20 p-2 rounded border border-green-500/10 whitespace-pre-wrap">
-                                     {suggestedParas.join("\n")}
-                                   </div>
+                                 <div className="flex justify-between items-center px-1 shrink-0">
+                                   <span className="text-[10px] opacity-70">Edição do bloco:</span>
+                                   <button
+                                     onClick={() => {
+                                       if (isEditingUnaligned) {
+                                         setAiSuggestion(tempEditValue);
+                                         setSuggestedParas(tempEditValue.split("\n"));
+                                         setIsEditingUnaligned(false);
+                                       } else {
+                                         setTempEditValue(aiSuggestion || "");
+                                         setIsEditingUnaligned(true);
+                                       }
+                                     }}
+                                     className="px-2 py-0.5 rounded text-[9px] font-bold bg-white/10 hover:bg-white/20 transition cursor-pointer"
+                                   >
+                                     {isEditingUnaligned ? "Concluir" : "Editar Manualmente"}
+                                   </button>
+                                 </div>
+                                 
+                                 <div className="flex-1 overflow-y-auto p-2 bg-black/40 border border-white/5 rounded text-xs flex flex-col gap-2 min-h-0">
+                                   {isEditingUnaligned ? (
+                                     <textarea
+                                       value={tempEditValue}
+                                       onChange={e => setTempEditValue(e.target.value)}
+                                       className="w-full flex-1 bg-black/50 border border-blue-500/30 rounded p-2.5 font-sans text-xs focus:ring-1 focus:ring-blue-500 outline-none resize-none min-h-[150px] text-slate-200"
+                                     />
+                                   ) : (
+                                     <>
+                                       <div className="text-[10px] opacity-50 uppercase tracking-wider font-bold">Original:</div>
+                                       <div className="text-red-400/70 line-through bg-red-950/20 p-2 rounded border border-red-500/10 whitespace-pre-wrap font-sans text-[11px]">
+                                         {originalParas.join("\n")}
+                                       </div>
+                                       <div className="text-[10px] opacity-50 uppercase tracking-wider font-bold mt-1">Sugerido:</div>
+                                       <div className="text-green-400 bg-green-950/20 p-2 rounded border border-green-500/10 whitespace-pre-wrap font-sans text-[11px]">
+                                         {suggestedParas.join("\n")}
+                                       </div>
+                                     </>
+                                   )}
                                  </div>
                                </div>
                              ) : (
-                               <div className="flex-1 overflow-y-auto p-2 bg-black/40 border border-white/5 rounded text-xs space-y-3">
+                               <div className="flex-1 overflow-y-auto p-2 bg-black/40 border border-white/5 rounded text-xs space-y-3 min-h-0">
                                  {suggestedParas.map((sugPara, idx) => {
                                    const origPara = originalParas[idx] || "";
                                    const isParaChanged = origPara !== sugPara;
@@ -548,7 +607,8 @@ export const TextEditor: React.FC = () => {
                                    }
                                    
                                    const isAccepted = acceptedParas[idx];
-                                   const diffTokens = diffWords(origPara, sugPara);
+                                   const isEditingThisPara = editingParaIdx === idx;
+                                   const segments = getDiffSegments(origPara, sugPara, idx);
                                    
                                    return (
                                      <div 
@@ -559,52 +619,99 @@ export const TextEditor: React.FC = () => {
                                            : 'bg-red-500/5 border-red-500/20 opacity-55'
                                        }`}
                                      >
-                                        <div className="flex justify-between items-center text-[10px] font-bold">
+                                        <div className="flex justify-between items-center text-[10px] font-bold shrink-0">
                                           <span className={isAccepted ? 'text-green-400' : 'text-red-400'}>
                                             Parágrafo {idx + 1} ({isAccepted ? 'Modificado' : 'Rejeitado'})
                                           </span>
-                                          <button
-                                            onClick={() => {
-                                              setAcceptedParas(prev => {
-                                                const copy = [...prev];
-                                                copy[idx] = !copy[idx];
-                                                return copy;
-                                              });
-                                            }}
-                                            className={`px-2 py-0.5 rounded text-[9px] cursor-pointer font-bold ${isAccepted ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}
-                                          >
-                                            {isAccepted ? "Rejeitar" : "Aceitar"}
-                                          </button>
+                                          <div className="flex items-center gap-1.5">
+                                            <button
+                                              onClick={() => {
+                                                if (isEditingThisPara) {
+                                                  setSuggestedParas(prev => {
+                                                    const copy = [...prev];
+                                                    copy[idx] = tempEditValue;
+                                                    return copy;
+                                                  });
+                                                  setEditingParaIdx(null);
+                                                } else {
+                                                  setEditingParaIdx(idx);
+                                                  setTempEditValue(sugPara);
+                                                }
+                                              }}
+                                              className="px-2 py-0.5 rounded text-[9px] font-bold bg-white/10 hover:bg-white/20 transition cursor-pointer"
+                                            >
+                                              {isEditingThisPara ? "Concluir" : "Editar"}
+                                            </button>
+                                            
+                                            {!isEditingThisPara && (
+                                              <button
+                                                onClick={() => {
+                                                  setAcceptedParas(prev => {
+                                                    const copy = [...prev];
+                                                    copy[idx] = !copy[idx];
+                                                    return copy;
+                                                  });
+                                                }}
+                                                className={`px-2 py-0.5 rounded text-[9px] cursor-pointer font-bold ${isAccepted ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}
+                                              >
+                                                {isAccepted ? "Rejeitar" : "Aceitar"}
+                                              </button>
+                                            )}
+                                          </div>
                                         </div>
                                         
-                                        {/* Inline unified paragraph diff */}
-                                        <div className="font-sans text-[12px] leading-relaxed p-2.5 rounded bg-black/30 border border-white/5 whitespace-pre-wrap select-text">
-                                          {diffTokens.map((token, tIdx) => {
-                                            if (token.type === 'equal') {
-                                              return <span key={tIdx} className="text-slate-300">{token.value}</span>;
-                                            } else if (token.type === 'removed') {
-                                              return (
-                                                <span 
-                                                  key={tIdx} 
-                                                  className="text-red-400 line-through bg-red-500/15 px-0.5 rounded transition-all duration-200 hover:bg-red-500/35 cursor-help"
-                                                  title="Original: removido"
-                                                >
-                                                  {token.value}
-                                                </span>
-                                              );
-                                            } else {
-                                              return (
-                                                <span 
-                                                  key={tIdx} 
-                                                  className="text-green-400 underline decoration-green-500/50 bg-green-500/15 px-0.5 rounded transition-all duration-200 hover:bg-green-500/35 font-semibold cursor-help"
-                                                  title="Sugerido: adicionado"
-                                                >
-                                                  {token.value}
-                                                </span>
-                                              );
-                                            }
-                                          })}
-                                        </div>
+                                        {isEditingThisPara ? (
+                                          <textarea
+                                            value={tempEditValue}
+                                            onChange={e => setTempEditValue(e.target.value)}
+                                            className="w-full bg-black/50 border border-blue-500/30 rounded p-2.5 font-sans text-xs focus:ring-1 focus:ring-blue-500 outline-none resize-none h-24 text-slate-200 leading-relaxed"
+                                            autoFocus
+                                          />
+                                        ) : (
+                                          /* Inline unified paragraph diff with click-to-toggle changes */
+                                          <div className="font-sans text-[12px] leading-relaxed p-2.5 rounded bg-black/30 border border-white/5 whitespace-pre-wrap select-text">
+                                            {segments.map((seg, sIdx) => {
+                                              if (seg.type === 'equal') {
+                                                return <span key={sIdx} className="text-slate-300">{seg.value}</span>;
+                                              } else {
+                                                const changeId = seg.id;
+                                                const isChangeAccepted = acceptedChanges[changeId] !== false;
+                                                
+                                                if (isChangeAccepted) {
+                                                  return (
+                                                    <span 
+                                                      key={sIdx} 
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setAcceptedChanges(prev => ({ ...prev, [changeId]: false }));
+                                                      }}
+                                                      className="inline bg-green-500/10 hover:bg-green-500/25 border border-green-500/20 hover:border-green-500/40 rounded px-1 py-0.5 mx-0.5 cursor-pointer transition-all duration-150 select-none"
+                                                      title="Clique para rejeitar esta alteração específica"
+                                                    >
+                                                      {seg.removed && <span className="text-red-400/50 line-through text-[10px] mr-1">{seg.removed}</span>}
+                                                      <span className="text-green-400 font-semibold">{seg.added}</span>
+                                                    </span>
+                                                  );
+                                                } else {
+                                                  return (
+                                                    <span 
+                                                      key={sIdx} 
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setAcceptedChanges(prev => ({ ...prev, [changeId]: true }));
+                                                      }}
+                                                      className="inline bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 hover:border-red-500/40 rounded px-1 py-0.5 mx-0.5 cursor-pointer transition-all duration-150 select-none opacity-60"
+                                                      title="Clique para aceitar esta alteração específica"
+                                                    >
+                                                      <span className="text-slate-300">{seg.removed}</span>
+                                                      {seg.added && <span className="text-green-400/30 line-through text-[10px] ml-1">{seg.added}</span>}
+                                                    </span>
+                                                  );
+                                                }
+                                              }
+                                            })}
+                                          </div>
+                                        )}
                                      </div>
                                    );
                                  })}
@@ -619,7 +726,7 @@ export const TextEditor: React.FC = () => {
                                  <Check size={14}/> {savedRange && selectedText ? "Substituir na Seleção" : "Substituir no Editor"}
                                </button>
                                <button
-                                 onClick={() => setAiSuggestion(null)}
+                                 onClick={clearAISuggestion}
                                  className="w-full p-2 bg-white/5 hover:bg-white/10 text-white rounded text-xs transition cursor-pointer"
                                >
                                  Cancelar

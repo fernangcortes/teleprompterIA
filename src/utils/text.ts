@@ -172,3 +172,52 @@ export const diffWords = (original: string, suggested: string): DiffToken[] => {
 
   return groupedResult;
 };
+
+export interface DiffSegment {
+  type: 'equal' | 'change';
+  id: string;
+  value?: string;
+  removed?: string;
+  added?: string;
+}
+
+export const getDiffSegments = (origPara: string, sugPara: string, paraIdx: number): DiffSegment[] => {
+  const tokens = diffWords(origPara, sugPara);
+  const segments: DiffSegment[] = [];
+  let changeCount = 0;
+  
+  let i = 0;
+  while (i < tokens.length) {
+    const token = tokens[i];
+    if (token.type === 'equal') {
+      segments.push({
+        type: 'equal',
+        id: `para-${paraIdx}-eq-${i}`,
+        value: token.value
+      });
+      i++;
+    } else {
+      let removedVal = "";
+      let addedVal = "";
+      
+      while (i < tokens.length && tokens[i].type !== 'equal') {
+        if (tokens[i].type === 'removed') {
+          removedVal += tokens[i].value;
+        } else if (tokens[i].type === 'added') {
+          addedVal += tokens[i].value;
+        }
+        i++;
+      }
+      
+      changeCount++;
+      segments.push({
+        type: 'change',
+        id: `para-${paraIdx}-chg-${changeCount}`,
+        removed: removedVal,
+        added: addedVal
+      });
+    }
+  }
+  
+  return segments;
+};
