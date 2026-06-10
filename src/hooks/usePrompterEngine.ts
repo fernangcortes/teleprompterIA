@@ -40,6 +40,23 @@ export const usePrompterEngine = (
   const detectWordThrottle = useRef<number | null>(null);
   const isSyncingFromPopup = useRef(false);
 
+  // Keep latest config/playback states in refs to avoid recreating the Web Worker
+  const speedRef = useRef(speed);
+  const voiceScrollOffsetRef = useRef(voiceScrollOffset);
+  const isPlayingRef = useRef(isPlaying);
+  const isVoiceModeRef = useRef(isVoiceMode);
+  const voiceStatusRef = useRef(voiceStatus);
+  const activeWordIdRef = useRef(activeWordId);
+
+  useEffect(() => {
+    speedRef.current = speed;
+    voiceScrollOffsetRef.current = voiceScrollOffset;
+    isPlayingRef.current = isPlaying;
+    isVoiceModeRef.current = isVoiceMode;
+    voiceStatusRef.current = voiceStatus;
+    activeWordIdRef.current = activeWordId;
+  }, [speed, voiceScrollOffset, isPlaying, isVoiceMode, voiceStatus, activeWordId]);
+
   // Sync scroll position to projection window
   const syncPopupPercentage = useCallback(() => {
     if (isSyncingFromPopup.current) return;
@@ -52,6 +69,16 @@ export const usePrompterEngine = (
       postMessageToChannel({ type: "SCROLL_SYNC", percentage });
     }
   }, [scrollContainerRef, postMessageToChannel]);
+
+  const syncPopupPercentageRef = useRef(syncPopupPercentage);
+  useEffect(() => {
+    syncPopupPercentageRef.current = syncPopupPercentage;
+  }, [syncPopupPercentage]);
+
+  const setPlayingRef = useRef(setPlaying);
+  useEffect(() => {
+    setPlayingRef.current = setPlaying;
+  }, [setPlaying]);
 
   // Detect which word is currently at the reading guideline
   const detectActiveWordFromScroll = useCallback(() => {
@@ -126,22 +153,22 @@ export const usePrompterEngine = (
 
       let targetVelocity = 0;
 
-      if (isManualOverride || !isVoiceMode) {
-          if (isPlaying) {
-              targetVelocity = speed * 0.06;
+      if (isManualOverride || !isVoiceModeRef.current) {
+          if (isPlayingRef.current) {
+              targetVelocity = speedRef.current * 0.06;
           } else {
               targetVelocity = 0;
           }
       } else {
           // Voice Mode (Smart Scroll)
-          if (voiceStatus === 'active') {
-             if (activeWordId) {
-                const el = document.getElementById(activeWordId);
+          if (voiceStatusRef.current === 'active') {
+             if (activeWordIdRef.current) {
+                const el = document.getElementById(activeWordIdRef.current);
                 if (el) {
                    const containerRect = container.getBoundingClientRect();
                    const elRect = el.getBoundingClientRect();
                    const relativeTop = elRect.top - containerRect.top;
-                   const offsetPercent = (voiceScrollOffset || 0) / 100;
+                   const offsetPercent = (voiceScrollOffsetRef.current || 0) / 100;
                    const idealLine = container.clientHeight * (0.32 + offsetPercent);
                    const error = relativeTop - idealLine;
                    
@@ -164,7 +191,9 @@ export const usePrompterEngine = (
       const smoothingFactor = 0.05; 
       currentVelocity.current += (targetVelocity - currentVelocity.current) * smoothingFactor;
 
-      if (Math.abs(currentVelocity.current) < 0.1) currentVelocity.current = 0;
+      if (targetVelocity === 0 && Math.abs(currentVelocity.current) < 0.1) {
+          currentVelocity.current = 0;
+      }
 
       if (Math.abs(currentVelocity.current) > 0) {
          if (container.scrollTop + container.clientHeight < container.scrollHeight - 1) {
@@ -174,16 +203,19 @@ export const usePrompterEngine = (
             if (pixelsToScroll !== 0) {
               container.scrollTop += pixelsToScroll;
               scrollAccumulator.current -= pixelsToScroll;
-              syncPopupPercentage();
+              syncPopupPercentageRef.current();
             }
-         } else if (isPlaying && !isVoiceMode && !isManualOverride) {
-            setPlaying(false);
+         } else if (isPlayingRef.current && !isVoiceModeRef.current && !isManualOverride) {
+            setPlayingRef.current(false);
          }
       }
     };
 
-    return () => worker.terminate();
-  }, [scrollContainerRef, isPlaying, speed, isVoiceMode, voiceStatus, activeWordId, voiceScrollOffset, setPlaying, syncPopupPercentage]);
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, [scrollContainerRef]);
 
   // Start/Stop worker based on playing status
   useEffect(() => {
